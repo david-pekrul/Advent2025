@@ -1,6 +1,6 @@
 package helpers
 
-import helpers.Vector.ALL_DIRECTIONS
+import helpers.Vector.*
 import Vector.*
 
 import scala.io.Source
@@ -88,7 +88,11 @@ object Helpers {
 
 case class Coord(x: Int, y: Int) {
   def neighbors(): Set[Coord] = {
-    ALL_DIRECTIONS.map(_.apply(this)).toSet
+    ALL_4_DIRECTIONS.map(_.apply(this)).toSet
+  }
+
+  def eightNeighbors(): Set[Coord] = {
+    ALL_8_DIRECTIONS.map(_.apply(this)).toSet
   }
 }
 
@@ -97,8 +101,16 @@ object Vector extends Enumeration {
   val RIGHT: Vector = Vector(1, 0)
   val DOWN: Vector = Vector(0, 1)
   val LEFT: Vector = Vector(-1, 0)
+  val UP_LEFT: Vector = Vector(-1, -1)
+  val UP_RIGHT: Vector = Vector(1, -1)
+  val DOWN_LEFT: Vector = Vector(-1, 1)
+  val DOWN_RIGHT: Vector = Vector(1, 1)
 
-  val ALL_DIRECTIONS: Seq[Vector] = Seq(UP, DOWN, LEFT, RIGHT)
+  val ALL_4_DIRECTIONS: Seq[Vector] = Seq(UP, DOWN, LEFT, RIGHT)
+
+  val ALL_8_DIRECTIONS: Seq[Vector] = Seq(
+    UP, DOWN, LEFT, RIGHT, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT
+  )
 
   def charToVector(c: Char): Vector = {
     c match
