@@ -10,6 +10,16 @@ object Helpers {
     Source.fromFile(filePath).getLines().toSeq
   }
 
+  def readFile(obj: Object) = {
+    val day = obj.getClass.getPackageName.toLowerCase()
+    Source.fromFile(s"src/$day/$day.txt").getLines().toSeq
+  }
+
+  def readTestFile(obj: Object) = {
+    val day = obj.getClass.getPackageName.toLowerCase()
+    Source.fromFile(s"src/$day/test.txt").getLines().toSeq
+  }
+
   def getLetterIndex(input: Char) = {
     val intValue = input.asInstanceOf[Int]
     if (input.isLower) {
