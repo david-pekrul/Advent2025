@@ -4,6 +4,8 @@ import scala.annotation.tailrec
 
 object Day5 {
   def main(args: Array[String]): Unit = {
+    val start = System.nanoTime()
+
     val day = this.getClass.getPackageName
     val input = helpers.Helpers.readFile(this)
 //    val input = helpers.Helpers.readTestFile(this)
@@ -21,6 +23,9 @@ object Day5 {
 
     val part2 = countFresh(combinedRanges)
     println(s"Part 2: $part2")
+
+    val end = System.nanoTime() - start
+    println(s"Time: ${end / 1000.0 / 1000.0}ms")
   }
 
 
