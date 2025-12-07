@@ -1,10 +1,11 @@
 package day7
 
 import helpers.Coord
+import helpers.Vector
 
 object Day7 {
   def main(args: Array[String]): Unit = {
-    //val input = helpers.Helpers.readTestFile(this)
+//    val input = helpers.Helpers.readTestFile(this)
     val input = helpers.Helpers.readFile(this)
 
     val coordArrays = input.zipWithIndex.map{(line, y) => {
@@ -24,6 +25,10 @@ object Day7 {
 
     val part1 = filteredSplitters.map(_._2.size).sum + 1 //+1 for the top one
     println(s"Part 1: $part1")
+
+    //15541455599 too low
+    val part2 = findPathCount(coordArrays, startX)
+    println(s"Part 2: $part2")
 
   }
 
@@ -86,5 +91,35 @@ object Day7 {
 
   }
 
+  def findPathCount(splitterLocations: Map[Int, Set[Int]], startX: Int) : Long = {
+
+    val splitterSet = splitterLocations.flatMap(y => {
+      y._2.map(x => Coord(x, y._1))
+    }).toSet
+
+    val startTachs = Map(Coord(startX, 0) -> 1L)
+
+    val rows = Range(1,splitterLocations.keys.max+1)
+
+    val finalTachs = rows.foldLeft(startTachs)((currentTachs,row) => {
+      val tachsMovedDown = currentTachs.map(kv => Vector.DOWN.apply(kv._1) -> kv._2)
+      val splitTachs = tachsMovedDown.map{case (tach,count) => {
+        if(splitterSet.contains(tach)) {
+          //tach hit a splitter
+          Seq((Vector.LEFT.apply(tach) -> count), (Vector.RIGHT.apply(tach) -> count))
+        } else {
+          Seq(tach -> count)
+        }
+      }}.flatten
+        .groupMap(_._1)(_._2)
+        .map(kv => {
+          kv._1 -> kv._2.sum
+        })
+
+      splitTachs
+    })
+
+    finalTachs.values.map(_.toLong).sum
+  }
 
 }
