@@ -5,6 +5,8 @@ import helpers.Vector
 
 object Day7 {
   def main(args: Array[String]): Unit = {
+
+    val start = System.nanoTime()
 //    val input = helpers.Helpers.readTestFile(this)
     val input = helpers.Helpers.readFile(this)
 
@@ -29,6 +31,9 @@ object Day7 {
     //15541455599 too low
     val part2 = findPathCount(coordArrays, startX)
     println(s"Part 2: $part2")
+
+    val end = System.nanoTime() - start
+    println(s"Time: ${end / 1000.0 / 1000.0}ms")
 
   }
 
