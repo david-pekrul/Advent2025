@@ -2,6 +2,7 @@ package day8
 
 object Day8 {
   def main(args: Array[String]): Unit = {
+    val start = System.nanoTime()
 //    val (input, make, take) = (helpers.Helpers.readTestFile(this), 10, 3)
     val (input, make, take) = (helpers.Helpers.readFile(this), 1000, 3)
 
@@ -17,6 +18,8 @@ object Day8 {
     val part2 = solvePart2(points)
     println(s"Part 2: $part2")
 
+    val end = System.nanoTime() - start
+    println(s"Time: ${end / 1000.0 / 1000.0}ms")
   }
 
   def solvePart1(points: Seq[Seq[Int]], connectionsToMake: Int, circuitsToTake: Int): Long = {
