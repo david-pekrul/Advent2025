@@ -104,6 +104,10 @@ case class Coord(x: Int, y: Int) {
   def eightNeighbors(): Set[Coord] = {
     ALL_8_DIRECTIONS.map(_.apply(this)).toSet
   }
+
+  def vectorTo(other: Coord): Vector = {
+    Vector(other.x - x, other.y - y)
+  }
 }
 
 object Vector extends Enumeration {
