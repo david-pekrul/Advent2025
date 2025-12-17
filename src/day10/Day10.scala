@@ -5,201 +5,154 @@ import scala.annotation.tailrec
 object Day10 {
   def main(args: Array[String]): Unit = {
     val start = System.nanoTime()
-//            val input = helpers.Helpers.readTestFile(this)
+    //    val input = helpers.Helpers.readTestFile(this)
     val input = helpers.Helpers.readFile(this)
 
-    val machines = parse1(input)
+    val machines = parse(input)
 
-    val part1 = machines.map(_.part1Answer).sum
+    val part1 = machines.map(_.part1Answer()).sum
     println(s"Part 1: $part1")
 
-    val machines2 = parse2(input)
-    val part2 = machines2.map(_.solvePart2()).sum
+    //    val test = Machine(4, 0, 0, Seq(8, 10, 4, 12, 5, 3), Seq(2,0,0,2)).solvePart2
+    //    println(test)
 
+    val part2 = machines.map(_.solvePart2).sum
     println(s"Part 2: $part2")
 
     val end = System.nanoTime() - start
     println(s"Time: ${end / 1000.0 / 1000.0}ms")
   }
 
-  def parse1(input: Seq[String]): Seq[Machine] = {
+  def parse(input: Seq[String]): Seq[Machine] = {
     input.map(line => {
       val split = line.split(" ")
-      val lightsString = split.head.replace("[", "").replace("]", "")
-      val lights = lightsString.toCharArray.zipWithIndex.map { case (c, idx) =>
-        if (c == '#') {
-          Math.pow(2, idx).shortValue
-        } else {
-          0
+      val targetLights = split.head.replace("[", "").replace("]", "")
+        .map {
+          case '#' => 1
+          case _ => 0
         }
-      }.sum
-      val joltages = split.last.drop(1).dropRight(1).split(",").map(_.toInt).toSeq
-      val buttons = split.drop(1).dropRight(1).map(buttonString => {
-        buttonString.replaceAll("[()]", "").split(",")
-          .map(_.toInt)
-          .map(targetLightIdx => Math.pow(2, targetLightIdx).shortValue)
-          .sum
-      })
-      Machine(lightsString.length.shortValue, 0, lights, buttons)
-    })
-  }
-
-  def parse2(input: Seq[String]): Seq[Machine2] = {
-    input.map(line => {
-      val split = line.split(" ")
-      val lightsString = split.head.replace("[", "").replace("]", "")
       val joltages = split.last.drop(1).dropRight(1).split(",").map(_.toInt).toSeq
       val buttons = split.drop(1).dropRight(1).map(buttonString => {
         buttonString.replaceAll("[()]", "").split(",")
           .map(_.toInt).toSeq
       }).toSeq
-      Machine2(buttons, joltages)
+      Machine(targetLights, buttons, joltages)
     })
   }
 
-  case class Machine(lightLength: Short, currentLights: Short, targetLights: Short, buttons: Seq[Short]) {
-    override def toString: String = {
-      s"Mach[${lightToString(lightLength, currentLights)}, ${lightToString(lightLength, targetLights)}, ${buttons}"
-    }
 
-    def pressButton(buttonIndex: Int): Machine = {
-      Machine(lightLength, (currentLights ^ buttons(buttonIndex)).shortValue, targetLights, buttons)
-    }
-
-    /* There is NO point in pressing a button twice for part 1. */
-    def part1Answer: Int = {
-
-      Range(1, Math.pow(2, buttons.size).shortValue).foldLeft(Int.MaxValue) { case (currentLowestCount, nextButtonCombo) => {
-        val buttonIndexes = getBinary(nextButtonCombo).zipWithIndex.filter(_._1 == 1)
-        if (buttonIndexes.size > currentLowestCount) {
-          //not even possible to best it
-          currentLowestCount
-        } else {
-          //do the calculation
-          val (lightState, buttonsUsed) = buttonIndexes.foldLeft((0.shortValue, 0)) { case ((current, btnCount), (btnFlag, btnIndex)) => {
-            btnFlag match {
-              case 0 => (current, btnCount)
-              case 1 => ((current ^ buttons(btnIndex)).shortValue, btnCount + 1)
-            }
-          }
-          }
-
-          if (lightState == targetLights) {
-            Math.min(buttonsUsed, currentLowestCount)
-          } else {
-            currentLowestCount
-          }
-        }
-      }
-      }
-
-    }
-  }
+  case class Machine(targetLights: Seq[Int], buttons: Seq[Seq[Int]], joltage: Seq[Int]) {
 
 
-  case class Machine2(buttons: Seq[Seq[Int]], joltage: Seq[Int]) {
+    val binaryOptions = getBinaryOptions(buttons.length)
+
+    def part1Answer(): Long = {
 
 
+      val buttonCombinations = binaryOptions.map(bits => {
+        val pressedButtons = buttons.zipWithIndex
+          .filter { case (btn, idx) => bits(idx) }
+          .map(_._1)
+        pressedButtons
+      })
 
-    def solvePart2(): Int = {
+      val emptyLights = targetLights.indices.map(_ => 0)
 
-      @tailrec
-      def _run(currentButtonStates: Seq[(Seq[Int], Int)]): Int = {
-
-        //at this point, are there enough buttons left to be updated to cover all the missing joltages???
-
-
-        val updatedStates = currentButtonStates.flatMap { case (currentButtons, lastUpdatedIdx) => {
-          val updatedIndexes = Range(lastUpdatedIdx, buttons.size).map(idxToIncrement => {
-
-            val updated = currentButtons.updated(idxToIncrement, currentButtons(idxToIncrement) + 1)
-            val updatedInfo = validAndFinished(updated)
-            updatedInfo -> (updated,idxToIncrement)
+      val appliedCombos = buttonCombinations.map(buttonCombo => {
+        buttonCombo -> buttonCombo.foldLeft(emptyLights)((state, nextButton) => {
+          nextButton.foldLeft(state)((state2, idx) => {
+            state2.updated(idx, state2(idx) ^ 1)
           })
-          updatedIndexes.filter(_._1._1)
+        })
+      })
+
+      val combosThatWork = appliedCombos.filter(_._2 == targetLights)
+      combosThatWork.map(_._1.length).min
+    }
+
+    def solvePart2: Long = {
+
+      //Seq[Buttons, Resulting Joltages From Buttons]
+      def combosThatEndInAllEvens(currentTarget: Seq[Int]): Seq[(Seq[Seq[Int]], Seq[Int])] = {
+
+        val buttonCombinations = binaryOptions.map(bits => {
+          val pressedButtons = buttons.zipWithIndex
+            .filter { case (btn, idx) => bits(idx) }
+            .map(_._1)
+          pressedButtons
+        })
+
+        val emptyLights = targetLights.indices.map(_ => 0)
+
+        //(buttons,resulting joltages)
+        val appliedCombos = buttonCombinations.map(buttonCombo => {
+          buttonCombo -> buttonCombo.foldLeft(emptyLights)((state, nextButton) => {
+            nextButton.foldLeft(state)((state2, idx) => {
+              state2.updated(idx, state2(idx) + 1)
+            })
+          })
+        })
+
+        //TODO: Check which end states get us to all even integers for the result.
+        //  currentTarget - result ==> all even values
+        val combosThatResultInAllEvens = appliedCombos
+          .map { case (buttonCombo, joltagesFromButtons) => {
+            buttonCombo -> currentTarget.zip(joltagesFromButtons).map { case (a, b) => a - b }
+          }
+          }
+          .filter { case (buttonCombo, remainingJoltage) => {
+            remainingJoltage.forall(j => j % 2 == 0 && j >= 0)
+          }
+          }
+
+        combosThatResultInAllEvens
+      }
+
+      def _run(currentTarget: Seq[Int], depth: Int = 0): Option[Long] = {
+
+        if (currentTarget.forall(_ == 0)) {
+          return Some(0L)
         }
-        }.filter(_._1._1)
 
+        val options = combosThatEndInAllEvens(currentTarget)
+        if (options.isEmpty) {
+          //The target is not empty, and no solution was found.
+          return None
+        }
 
+        val result = options.map { case (buttons, resultingState) => {
+          val halfedAnswerOpt = _run(resultingState.map(_ / 2), depth + 1)
+          halfedAnswerOpt.map(h => buttons.size.toLong + 2 * h)
+        }
+        }.filter(_.isDefined).map(_.get)
 
-        val finishedOpt = updatedStates.find(stateKv => stateKv._1._2) //finished
-
-        if (finishedOpt.isDefined) {
-          println("DONE! " + finishedOpt)
-          val f = finishedOpt.get._2._1.sum
-          f
+        if result.isEmpty then {
+          None
         } else {
-          _run(updatedStates.map(_._2))
+          Some(result.min)
         }
       }
 
-
-      val initialState = Seq((buttons.map(_ => 0), 0))
-      val machineAnswer = _run(initialState)
-      println(machineAnswer -> this)
-      machineAnswer
+      val answer = _run(joltage)
+      println(s"Solved: $answer => $this")
+      answer.get
     }
 
-    def maxValueForBtn(btnIdx: Int): Int = {
-      buttons(btnIdx).map(joltageIdx => joltage(joltageIdx)).min
-    }
-
-    def stillValid(buttonPressCounts: Seq[Int]): Boolean = {
-      val thing = buttonPressCounts.zipWithIndex
-        .flatMap { case (btnCount, btnIdx) => buttons(btnIdx).map(joltageIndex => joltageIndex -> btnCount) }
-        .groupBy(_._1)
-        .map(kv => kv._1 -> kv._2.map(_._2).sum)
-      !thing.exists { case (idx, currentCount) => joltage(idx) < currentCount }
-    }
-
-    def finished(buttonPressCounts: Seq[Int]): Boolean = {
-      val thing = buttonPressCounts.zipWithIndex
-        .flatMap { case (btnCount, btnIdx) => buttons(btnIdx).map(joltageIndex => joltageIndex -> btnCount) }
-        .groupBy(_._1)
-        .map(kv => kv._1 -> kv._2.map(_._2).sum)
-      thing.forall { case (idx, currentCount) => joltage(idx) == currentCount }
-    }
-
-    //valid , finished
-    def validAndFinished(buttonPressCounts: Seq[Int]): (Boolean, Boolean) = {
-      val thing = buttonPressCounts.zipWithIndex
-        .flatMap { case (btnCount, btnIdx) => buttons(btnIdx).map(joltageIndex => joltageIndex -> btnCount) }
-        .groupBy(_._1)
-        .map(kv => kv._1 -> kv._2.map(_._2).sum)
-      val valid = !thing.exists { case (idx, currentCount) => joltage(idx) < currentCount }
-      val finished = valid && thing.forall { case (idx, currentCount) => joltage(idx) == currentCount }
-      (valid, finished)
-    }
   }
 
 
-  def lightToString(lightLength: Short, light: Short): String = {
+  def getBinaryOptions(length: Int): Seq[Seq[Boolean]] = {
 
     @tailrec
-    def _toStr(lightLength: Short, remaining: Short, str: String): String = {
-      if (lightLength == 0) {
-        return str
+    def _run(current: Seq[Seq[Boolean]], depth: Int = 0): Seq[Seq[Boolean]] = {
+      if (current.head.length == length) {
+        return current
       }
 
-      def next = remaining % 2 match {
-        case 0 => str + '_'
-        case 1 => str + '#'
-      }
-
-      _toStr((lightLength - 1).shortValue, (remaining >> 1).shortValue, next)
+      val next = current.flatMap(c => Seq(c :+ true, c :+ false))
+      _run(next, depth + 1)
     }
 
-    _toStr(lightLength, light, "")
-  }
-
-  @tailrec
-  def getBinary(input: Int, indexes: Seq[Int] = Seq()): Seq[Int] = {
-    if (input == 0) {
-      return indexes
-    }
-
-    def next = indexes :+ (input % 2)
-
-    getBinary(input / 2, next)
+    _run(Seq(Seq(true), Seq(false)))
   }
 }
